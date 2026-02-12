@@ -4,6 +4,8 @@ function updateUI() {
 
         if (identity) {
             document.getElementById('current-address').textContent = identity.address;
+            const burnUrl = `https://codewarrior4.github.io/BurnerX/?sync=${btoa(identity.address + ':' + identity.password)}`;
+            document.getElementById('full-inbox-link').href = burnUrl;
         }
 
         if (lastFound) {

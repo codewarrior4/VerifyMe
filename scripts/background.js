@@ -43,6 +43,7 @@ async function handleCreateAccount() {
         const identity = {
             id: account.id,
             address,
+            password, // Store password to allow deep-linking to BurnerX
             token: tokenData.token,
             createdAt: new Date().toISOString()
         };
