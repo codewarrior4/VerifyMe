@@ -198,10 +198,20 @@
             <button id="copy-addr" class="icon-btn" title="Copy Address">📋</button>
         </div>
         <p style="font-size: 13px; font-weight: bold; margin: 10px 0;">Waiting for email...</p>
-        <p style="font-size: 11px; color: var(--dim); margin: 0 0 15px 0;">Just stay on this page. We'll find the button
-            for you.</p>
 
-        <button id="reset-btn" class="reset-btn">START NEW SESSION</button>
+        <button id="refresh-btn" class="verify-btn"
+            style="background: var(--primary); font-size: 12px; padding: 12px; margin-bottom: 20px;">
+            🔄 CHECK AGAIN NOW
+        </button>
+
+        <p style="font-size: 11px; color: var(--dim); margin: 0 0 15px 0;">Automatic check every 5s.</p>
+
+        <button id="reset-btn" class="reset-btn" style="margin-bottom: 15px;">START NEW SESSION</button>
+
+        <a href="https://mail.tm" target="_blank"
+            style="font-size: 10px; color: var(--dim); text-decoration: underline; display: block;">
+            OPEN FULL INBOX
+        </a>
     </div>
 
     <div id="found" class="status-card found-card">

@@ -58,6 +58,7 @@ async function handleCreateAccount() {
 
 function startPolling() {
     if (pollingInterval) clearInterval(pollingInterval);
+    checkForVerification(); // Run once immediately
     pollingInterval = setInterval(checkForVerification, 5000);
 }
 

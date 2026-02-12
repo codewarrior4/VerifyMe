@@ -39,6 +39,21 @@ function resetSession() {
 document.getElementById('reset-btn').onclick = resetSession;
 document.getElementById('found-reset-btn').onclick = resetSession;
 
+document.getElementById('refresh-btn').onclick = () => {
+    const btn = document.getElementById('refresh-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '🔄 CHECKING...';
+    btn.disabled = true;
+
+    chrome.runtime.sendMessage({ type: 'START_POLLING' }, () => {
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            updateUI();
+        }, 1000);
+    });
+};
+
 document.getElementById('copy-addr').onclick = () => {
     const addr = document.getElementById('current-address').textContent;
     navigator.clipboard.writeText(addr);
