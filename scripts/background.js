@@ -111,31 +111,39 @@ async function checkForVerification() {
 }
 
 function parseEmailForAction(html, text) {
-    const content = (html + " " + (text || "")).toLowerCase();
+    // 1. Get clean text content (strip HTML to avoid matching meta numbers)
+    let cleanContent = text || '';
+    if (html && !cleanContent) {
+        cleanContent = html.replace(/<[^>]*>?/gm, ' ');
+    }
+
+    const content = cleanContent.toLowerCase();
     if (!content) return null;
 
-    // 1. Improved OTP Detection
-    // Look for numbers preceded by "code", "is", "otp", "verification", or ":"
-    const otpKeywords = /(?:otp|code|is|verification|confirm|passcode)[:\s]+(\d{4,8})/i;
-    const keywordMatch = content.match(otpKeywords);
+    // 2. High Priority: Look for exactly 6 digits (most common)
+    const sixDigitMatch = content.match(/\b\d{6}\b/);
+    if (sixDigitMatch) {
+        return { type: 'OTP', value: sixDigitMatch[0] };
+    }
 
+    // 3. Medium Priority: Look for 4-8 digits near keywords (Removed "is")
+    const otpKeywords = /(?:otp|code|verification|passcode|confirm)[:\s]+(\d{4,8})/i;
+    const keywordMatch = content.match(otpKeywords);
     if (keywordMatch) {
         return { type: 'OTP', value: keywordMatch[1] };
     }
 
-    // Fallback: any standalone 4-8 digit number
+    // 4. Fallback: Any standalone 4-8 digit number
     const standaloneMatch = content.match(/\b\d{4,8}\b/);
     if (standaloneMatch) {
         return { type: 'OTP', value: standaloneMatch[0] };
     }
 
-    // 2. Improved Link Detection
-    // Matches href or just plain text URLs that contain verification keywords
+    // 5. Link Detection
     const urlRegex = /(https?:\/\/[^\s"'<>]+(?:confirm|verify|activate|validate|token)[^\s"'<>]*)/gi;
-    const links = content.match(urlRegex) || [];
+    const links = (html || content).match(urlRegex) || [];
 
     if (links.length > 0) {
-        // Return the shortest link likely to be the actual token/button
         const bestLink = links.sort((a, b) => a.length - b.length)[0];
         return { type: 'LINK', value: bestLink };
     }
