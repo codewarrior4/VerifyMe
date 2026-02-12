@@ -68,6 +68,9 @@ async function checkForVerification() {
     if (!identity) return;
 
     try {
+        const storage = await chrome.storage.local.get(['ignoredId']);
+        const ignoredId = storage.ignoredId;
+
         const res = await fetch(`${API_BASE}/messages`, {
             headers: { Authorization: `Bearer ${identity.token}` }
         });
@@ -76,6 +79,10 @@ async function checkForVerification() {
 
         if (messages.length > 0) {
             const latestMsg = messages[0];
+
+            // Skip if this message has been dismissed
+            if (latestMsg.id === ignoredId) return;
+
             // Fetch full content
             const msgRes = await fetch(`${API_BASE}/messages/${latestMsg.id}`, {
                 headers: { Authorization: `Bearer ${identity.token}` }
@@ -88,6 +95,7 @@ async function checkForVerification() {
                 chrome.storage.local.set({
                     lastFound: {
                         ...verificationInfo,
+                        id: latestMsg.id,
                         subject: latestMsg.subject,
                         time: new Date().toISOString()
                     }

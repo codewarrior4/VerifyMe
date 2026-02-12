@@ -34,8 +34,10 @@ function updateUI() {
 
 function resetSession() {
     if (confirm('Start a new session? This will generate a new email address.')) {
-        chrome.runtime.sendMessage({ type: 'GENERATE_ID' }, () => {
-            updateUI();
+        chrome.storage.local.remove(['ignoredId'], () => {
+            chrome.runtime.sendMessage({ type: 'GENERATE_ID' }, () => {
+                updateUI();
+            });
         });
     }
 }
@@ -44,9 +46,14 @@ document.getElementById('reset-btn').onclick = resetSession;
 document.getElementById('found-reset-btn').onclick = resetSession;
 
 document.getElementById('clear-result-btn').onclick = () => {
-    chrome.storage.local.remove(['lastFound'], () => {
-        chrome.runtime.sendMessage({ type: 'START_POLLING' });
-        updateUI();
+    chrome.storage.local.get(['lastFound'], (data) => {
+        const idToIgnore = data.lastFound?.id;
+        chrome.storage.local.set({ ignoredId: idToIgnore }, () => {
+            chrome.storage.local.remove(['lastFound'], () => {
+                chrome.runtime.sendMessage({ type: 'START_POLLING' });
+                updateUI();
+            });
+        });
     });
 };
 
