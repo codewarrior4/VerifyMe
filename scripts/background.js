@@ -81,7 +81,7 @@ async function checkForVerification() {
             });
             const fullMsg = await msgRes.json();
 
-            const verificationInfo = parseEmailForAction(fullMsg.html || fullMsg.text);
+            const verificationInfo = parseEmailForAction(fullMsg.html, fullMsg.text);
 
             if (verificationInfo) {
                 chrome.storage.local.set({
@@ -110,25 +110,32 @@ async function checkForVerification() {
     }
 }
 
-function parseEmailForAction(html) {
-    if (!html) return null;
+function parseEmailForAction(html, text) {
+    const content = (html + " " + (text || "")).toLowerCase();
+    if (!content) return null;
 
-    // 1. Check for OTP (4-8 digit numbers)
-    const otpMatch = html.match(/\b\d{4,8}\b/);
-    if (otpMatch) {
-        return { type: 'OTP', value: otpMatch[0] };
+    // 1. Improved OTP Detection
+    // Look for numbers preceded by "code", "is", "otp", "verification", or ":"
+    const otpKeywords = /(?:otp|code|is|verification|confirm|passcode)[:\s]+(\d{4,8})/i;
+    const keywordMatch = content.match(otpKeywords);
+
+    if (keywordMatch) {
+        return { type: 'OTP', value: keywordMatch[1] };
     }
 
-    // 2. Check for Verification Links
-    const linkRegex = /href="([^"]*(?:confirm|verify|activate|validate|click|signup|token)[^"]*)"/gi;
-    let match;
-    const links = [];
-    while ((match = linkRegex.exec(html)) !== null) {
-        links.push(match[1]);
+    // Fallback: any standalone 4-8 digit number
+    const standaloneMatch = content.match(/\b\d{4,8}\b/);
+    if (standaloneMatch) {
+        return { type: 'OTP', value: standaloneMatch[0] };
     }
+
+    // 2. Improved Link Detection
+    // Matches href or just plain text URLs that contain verification keywords
+    const urlRegex = /(https?:\/\/[^\s"'<>]+(?:confirm|verify|activate|validate|token)[^\s"'<>]*)/gi;
+    const links = content.match(urlRegex) || [];
 
     if (links.length > 0) {
-        // Return the shortest link that looks most like a verification token
+        // Return the shortest link likely to be the actual token/button
         const bestLink = links.sort((a, b) => a.length - b.length)[0];
         return { type: 'LINK', value: bestLink };
     }

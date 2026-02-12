@@ -39,6 +39,13 @@ function resetSession() {
 document.getElementById('reset-btn').onclick = resetSession;
 document.getElementById('found-reset-btn').onclick = resetSession;
 
+document.getElementById('clear-result-btn').onclick = () => {
+    chrome.storage.local.remove(['lastFound'], () => {
+        chrome.runtime.sendMessage({ type: 'START_POLLING' });
+        updateUI();
+    });
+};
+
 document.getElementById('refresh-btn').onclick = () => {
     const btn = document.getElementById('refresh-btn');
     const originalText = btn.innerHTML;
