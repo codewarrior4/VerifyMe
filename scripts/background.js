@@ -135,8 +135,8 @@ function parseEmailForAction(html, text) {
         return { type: 'OTP', value: sixDigitMatch[0] };
     }
 
-    // 3. Medium Priority: Look for 4-8 digits near keywords (Removed "is")
-    const otpKeywords = /(?:otp|code|verification|passcode|confirm)[:\s]+(\d{4,8})/i;
+    // 3. Medium Priority: Look for 4-8 digits near specific keywords
+    const otpKeywords = /(?:otp|code|verification|passcode|confirm|reset|password)[:\s]+(\d{4,8})/i;
     const keywordMatch = content.match(otpKeywords);
     if (keywordMatch) {
         return { type: 'OTP', value: keywordMatch[1] };
@@ -148,8 +148,8 @@ function parseEmailForAction(html, text) {
         return { type: 'OTP', value: standaloneMatch[0] };
     }
 
-    // 5. Link Detection
-    const urlRegex = /(https?:\/\/[^\s"'<>]+(?:confirm|verify|activate|validate|token)[^\s"'<>]*)/gi;
+    // 5. Link Detection (added reset/password keywords)
+    const urlRegex = /(https?:\/\/[^\s"'<>]+(?:confirm|verify|activate|validate|token|reset|password)[^\s"'<>]*)/gi;
     const links = (html || content).match(urlRegex) || [];
 
     if (links.length > 0) {
