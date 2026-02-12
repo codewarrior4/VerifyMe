@@ -48,6 +48,8 @@ async function handleCreateAccount() {
         };
 
         await setIdentity(identity);
+        // Clear previous results when generating a new identity
+        await chrome.storage.local.remove(['lastFound']);
         return { success: true, address };
     } catch (err) {
         return { success: false, error: err.message };

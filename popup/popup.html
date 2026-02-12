@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        :root {
+            --primary: #FF5722;
+            --bg: #121214;
+            --card: #1C1C1E;
+            --text: #ffffff;
+            --dim: #A1A1AA;
+        }
+
+        body {
+            width: 320px;
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .shield {
+            color: var(--primary);
+            font-size: 24px;
+        }
+
+        h1 {
+            font-size: 18px;
+            font-weight: 900;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .status-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .pulse {
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 20px rgba(255, 87, 34, 0.4);
+            animation: pulse-ring 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(255, 87, 34, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 87, 34, 0);
+            }
+        }
+
+        .address-box-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .address-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--dim);
+            word-break: break-all;
+            font-family: monospace;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .icon-btn {
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .reset-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px solid rgba(255, 87, 34, 0.3);
+            color: var(--primary);
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+        }
+
+        .reset-btn:hover {
+            background: rgba(255, 87, 34, 0.1);
+            border-color: var(--primary);
+        }
+
+        .found-card {
+            display: none;
+            animation: slide-up 0.4s ease-out;
+        }
+
+        @keyframes slide-up {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .verify-btn {
+            display: block;
+            width: 100%;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            font-weight: 900;
+            padding: 18px;
+            border-radius: 14px;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            text-transform: uppercase;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .otp-display {
+            font-size: 42px;
+            font-weight: 900;
+            color: var(--primary);
+            letter-spacing: 4px;
+            margin: 10px 0;
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 10px;
+            color: var(--dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <span class="shield">🛡️</span>
+        <h1>VerifyMe</h1>
+    </div>
+
+    <div id="loading" class="status-card">
+        <div class="pulse">📩</div>
+        <div class="address-box-container">
+            <div id="current-address" class="address-box">Generating...</div>
+            <button id="copy-addr" class="icon-btn" title="Copy Address">📋</button>
+        </div>
+        <p style="font-size: 13px; font-weight: bold; margin: 10px 0;">Waiting for email...</p>
+        <p style="font-size: 11px; color: var(--dim); margin: 0 0 15px 0;">Just stay on this page. We'll find the button
+            for you.</p>
+
+        <button id="reset-btn" class="reset-btn">START NEW SESSION</button>
+    </div>
+
+    <div id="found" class="status-card found-card">
+        <p style="color: #4CAF50; font-weight: 900; font-size: 12px; margin-bottom: 20px;">✨ VERIFICATION FOUND</p>
+        <div id="otp-section" style="display: none;">
+            <div id="otp-code" class="otp-display">000000</div>
+            <p style="font-size: 11px; color: var(--dim);">CODE AUTOMATICALLY COPIED</p>
+        </div>
+        <div id="link-section">
+            <a href="#" id="verify-link" class="verify-btn" target="_blank">Click to Verify</a>
+        </div>
+        <button id="found-reset-btn" class="reset-btn" style="margin-top: 20px;">NEW VERIFICATION</button>
+    </div>
+
+    <div class="footer">POWERED BY MAIL.TM</div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>
