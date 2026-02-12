@@ -135,8 +135,8 @@ function parseEmailForAction(html, text) {
         return { type: 'OTP', value: sixDigitMatch[0] };
     }
 
-    // 3. Medium Priority: Look for 4-8 digits near specific keywords
-    const otpKeywords = /(?:otp|code|verification|passcode|confirm|reset|password)[:\s]+(\d{4,8})/i;
+    // 3. Medium Priority: Look for 4-8 digits near keywords
+    const otpKeywords = /(?:otp|code|verification|passcode|confirm|reset|password|onely)[:\s]+(\d{4,8})/i;
     const keywordMatch = content.match(otpKeywords);
     if (keywordMatch) {
         return { type: 'OTP', value: keywordMatch[1] };
@@ -148,12 +148,48 @@ function parseEmailForAction(html, text) {
         return { type: 'OTP', value: standaloneMatch[0] };
     }
 
-    // 5. Link Detection (added reset/password keywords)
-    const urlRegex = /(https?:\/\/[^\s"'<>]+(?:confirm|verify|activate|validate|token|reset|password)[^\s"'<>]*)/gi;
-    const links = (html || content).match(urlRegex) || [];
+    // 5. Advanced Link Detection
+    // We search for <a> tags specifically and check both the HREF and the INNER TEXT
+    const aTagRegex = /<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+    let match;
+    const candidates = [];
 
-    if (links.length > 0) {
-        const bestLink = links.sort((a, b) => a.length - b.length)[0];
+    const verifKeywords = ['confirm', 'verify', 'activate', 'validate', 'token', 'reset', 'password', 'click', 'start', 'login', 'sign', 'onely'];
+    const ignoreKeywords = ['unsubscribe', 'privacy', 'terms', 'opt-out', 'preferences', 'help', 'support', 'about', 'blog', 'twitter', 'facebook', 'instagram'];
+
+    const searchSpace = (html || '') + " " + content;
+
+    while ((match = aTagRegex.exec(html || '')) !== null) {
+        const url = match[1];
+        const text = match[2].replace(/<[^>]*>?/gm, ' ').toLowerCase(); // Strip inner HTML tags from text
+        const urlLower = url.toLowerCase();
+
+        // Skip links that look like noise
+        if (ignoreKeywords.some(k => urlLower.includes(k) || text.includes(k))) continue;
+
+        let score = 0;
+        // Priority for verification keywords in URL or TEXT
+        verifKeywords.forEach(k => {
+            if (urlLower.includes(k)) score += 10;
+            if (text.includes(k)) score += 15;
+        });
+
+        if (score > 0) {
+            candidates.push({ url, score, textLen: text.length });
+        }
+    }
+
+    if (candidates.length > 0) {
+        // Sort by score (desc) then by text length (asc)
+        const best = candidates.sort((a, b) => (b.score - a.score) || (a.textLen - b.textLen))[0];
+        return { type: 'LINK', value: best.url };
+    }
+
+    // Fallback: If no <a> tags found, try plain text URLs as before
+    const plainUrlRegex = /(https?:\/\/[^\s"'<>]+(?:confirm|verify|activate|validate|token|reset|password|onely)[^\s"'<>]*)/gi;
+    const plainLinks = searchSpace.match(plainUrlRegex) || [];
+    if (plainLinks.length > 0) {
+        const bestLink = plainLinks.sort((a, b) => a.length - b.length)[0];
         return { type: 'LINK', value: bestLink };
     }
 
