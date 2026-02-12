@@ -120,77 +120,51 @@ async function checkForVerification() {
 }
 
 function parseEmailForAction(html, text) {
-    // 1. Get clean text content (strip HTML to avoid matching meta numbers)
-    let cleanContent = text || '';
-    if (html && !cleanContent) {
-        cleanContent = html.replace(/<[^>]*>?/gm, ' ');
-    }
-
+    const cleanContent = (text || '') + (html ? html.replace(/<[^>]*>?/gm, ' ') : '');
     const content = cleanContent.toLowerCase();
-    if (!content) return null;
+    if (!content.trim()) return null;
 
-    // 2. High Priority: Look for exactly 6 digits (most common)
+    // 1. OTP DETECTION (Prioritize 6-digit)
     const sixDigitMatch = content.match(/\b\d{6}\b/);
-    if (sixDigitMatch) {
-        return { type: 'OTP', value: sixDigitMatch[0] };
-    }
+    if (sixDigitMatch) return { type: 'OTP', value: sixDigitMatch[0] };
 
-    // 3. Medium Priority: Look for 4-8 digits near keywords
-    const otpKeywords = /(?:otp|code|verification|passcode|confirm|reset|password|onely)[:\s]+(\d{4,8})/i;
+    const otpKeywords = /(?:otp|code|verification|passcode|confirm|reset|password|recovery)[:\s]+(\d{4,8})/i;
     const keywordMatch = content.match(otpKeywords);
-    if (keywordMatch) {
-        return { type: 'OTP', value: keywordMatch[1] };
-    }
+    if (keywordMatch) return { type: 'OTP', value: keywordMatch[1] };
 
-    // 4. Fallback: Any standalone 4-8 digit number
     const standaloneMatch = content.match(/\b\d{4,8}\b/);
-    if (standaloneMatch) {
-        return { type: 'OTP', value: standaloneMatch[0] };
-    }
+    if (standaloneMatch) return { type: 'OTP', value: standaloneMatch[0] };
 
-    // 5. Advanced Link Detection
-    // We search for <a> tags specifically and check both the HREF and the INNER TEXT
-    const aTagRegex = /<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
-    let match;
+    // 2. LINK DETECTION
+    const verifKeywords = ['confirm', 'verify', 'activate', 'validate', 'token', 'reset', 'password', 'recovery', 'auth', 'login', 'click'];
+    const ignoreKeywords = ['unsubscribe', 'privacy', 'terms', 'opt-out', 'preferences', 'help', 'support', 'about'];
+
+    // Extract all potential URLs
+    const urlRegex = /https?:\/\/[^\s"'<>#]+(?:[?#][^\s"'<>]*)?/gi;
+    const allUrls = (html + " " + content).match(urlRegex) || [];
+
     const candidates = [];
-
-    const verifKeywords = ['confirm', 'verify', 'activate', 'validate', 'token', 'reset', 'password', 'click', 'start', 'login', 'sign', 'onely'];
-    const ignoreKeywords = ['unsubscribe', 'privacy', 'terms', 'opt-out', 'preferences', 'help', 'support', 'about', 'blog', 'twitter', 'facebook', 'instagram'];
-
-    const searchSpace = (html || '') + " " + content;
-
-    while ((match = aTagRegex.exec(html || '')) !== null) {
-        const url = match[1];
-        const text = match[2].replace(/<[^>]*>?/gm, ' ').toLowerCase(); // Strip inner HTML tags from text
+    allUrls.forEach(url => {
         const urlLower = url.toLowerCase();
-
-        // Skip links that look like noise
-        if (ignoreKeywords.some(k => urlLower.includes(k) || text.includes(k))) continue;
+        if (ignoreKeywords.some(k => urlLower.includes(k))) return;
 
         let score = 0;
-        // Priority for verification keywords in URL or TEXT
+        // Search for keywords in the URL string itself
         verifKeywords.forEach(k => {
             if (urlLower.includes(k)) score += 10;
-            if (text.includes(k)) score += 15;
         });
 
-        if (score > 0) {
-            candidates.push({ url, score, textLen: text.length });
+        // Search for keywords in the text *around* where this URL appeared in content
+        // This is a rough check
+        if (score > 0 || verifKeywords.some(k => content.includes(k))) {
+            candidates.push({ url, score });
         }
-    }
+    });
 
     if (candidates.length > 0) {
-        // Sort by score (desc) then by text length (asc)
-        const best = candidates.sort((a, b) => (b.score - a.score) || (a.textLen - b.textLen))[0];
+        // Sort by score then length (usually shorter is the actual action link)
+        const best = candidates.sort((a, b) => b.score - a.score || a.url.length - b.url.length)[0];
         return { type: 'LINK', value: best.url };
-    }
-
-    // Fallback: If no <a> tags found, try plain text URLs as before
-    const plainUrlRegex = /(https?:\/\/[^\s"'<>]+(?:confirm|verify|activate|validate|token|reset|password|onely)[^\s"'<>]*)/gi;
-    const plainLinks = searchSpace.match(plainUrlRegex) || [];
-    if (plainLinks.length > 0) {
-        const bestLink = plainLinks.sort((a, b) => a.length - b.length)[0];
-        return { type: 'LINK', value: bestLink };
     }
 
     return null;
