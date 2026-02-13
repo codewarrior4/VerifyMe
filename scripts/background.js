@@ -120,12 +120,16 @@ async function checkForVerification() {
 }
 
 function parseEmailForAction(html, text) {
-    // Don't strip HTML for URL extraction - extract from raw HTML first
+    // Normalize html/text (Mail.tm can return arrays)
+    const rawHtml = Array.isArray(html) ? html[0] : (html || '');
+    const rawText = Array.isArray(text) ? text[0] : (text || '');
+
+    // Extract URLs from both HTML (for hrefs) and Text (for plain links)
     const urlRegex = /https?:\/\/[^\s"'<>]+(?:[?#][^\s"'<>]*)?/gi;
-    const allUrls = (html || '').match(urlRegex) || [];
-    
+    const allUrls = [...new Set((rawHtml + " " + rawText).match(urlRegex) || [])];
+
     // For keyword detection, use clean text
-    const cleanContent = (text || '') + (html ? html.replace(/<[^>]*>?/gm, ' ') : '');
+    const cleanContent = rawText + " " + rawHtml.replace(/<[^>]*>?/gm, ' ');
     const content = cleanContent.toLowerCase();
     if (!content.trim()) return null;
 
