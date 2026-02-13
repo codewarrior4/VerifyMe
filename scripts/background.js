@@ -22,7 +22,10 @@ const getIdentity = () => chrome.storage.local.get(['identity']).then(res => res
 // Listen for messages from Content Script or Popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'GENERATE_ID') {
-        handleCreateAccount().then(sendResponse);
+        handleCreateAccount().then(res => {
+            startPolling();
+            sendResponse(res);
+        });
         return true;
     }
     if (request.type === 'START_POLLING') {
@@ -57,25 +60,34 @@ async function handleCreateAccount() {
         const identity = {
             id: account.id,
             address,
-            password, // Store password to allow deep-linking to BurnerX
+            password,
             token: tokenData.token,
             createdAt: new Date().toISOString()
         };
 
         await setIdentity(identity);
-        // Clear previous results when generating a new identity
-        await chrome.storage.local.remove(['lastFound']);
+        await chrome.storage.local.remove(['lastFound', 'ignoredId']);
         return { success: true, address };
     } catch (err) {
         return { success: false, error: err.message };
     }
 }
 
+// Auto-start polling on startup
+chrome.runtime.onStartup.addListener(startPolling);
+chrome.runtime.onInstalled.addListener(startPolling);
+
 function startPolling() {
-    if (pollingInterval) clearInterval(pollingInterval);
-    checkForVerification(); // Run once immediately
-    pollingInterval = setInterval(checkForVerification, 5000);
+    // Alarms are more reliable in MV3 as they wake up the service worker
+    chrome.alarms.create('checkEmail', { periodInMinutes: 0.5 }); // Poll every 30s (approx minimum)
+    checkForVerification(); // Initial check
 }
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === 'checkEmail') {
+        checkForVerification();
+    }
+});
 
 async function checkForVerification() {
     const identity = await getIdentity();
@@ -145,7 +157,7 @@ async function checkForVerification() {
                     priority: 2
                 });
 
-                clearInterval(pollingInterval);
+                chrome.alarms.clear('checkEmail');
             }
         }
     } catch (err) {
