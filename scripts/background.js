@@ -1,6 +1,20 @@
 const API_BASE = 'https://api.mail.tm';
 let pollingInterval = null;
 
+// Audio helper for Manifest V3 background
+async function playSoundBackground(url) {
+    if (await chrome.offscreen.hasDocument()) {
+        chrome.runtime.sendMessage({ type: 'PLAY_SOUND', url });
+    } else {
+        await chrome.offscreen.createDocument({
+            url: 'offscreen/offscreen.html',
+            reasons: ['AUDIO_PLAYBACK'],
+            justification: 'Notification for new verification email'
+        });
+        chrome.runtime.sendMessage({ type: 'PLAY_SOUND', url });
+    }
+}
+
 // Storage Helper
 const setIdentity = (data) => chrome.storage.local.set({ identity: data });
 const getIdentity = () => chrome.storage.local.get(['identity']).then(res => res.identity);
@@ -107,7 +121,8 @@ async function checkForVerification() {
                     }
                 });
 
-                // Elite Polish: Trigger Sound in Popup
+                // Elite Polish: Trigger Sound (Via Offscreen for reliability)
+                playSoundBackground('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
                 chrome.runtime.sendMessage({ type: 'TRIGGER_SOUND' });
 
                 // Elite Polish: Tell Content Script to show floating auto-fill

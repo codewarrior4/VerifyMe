@@ -42,10 +42,22 @@ function injectButtons() {
     });
 }
 
+// --- ELITE POLISH: SOUND ENGINE ---
+function playNotificationSound() {
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audio.volume = 0.5;
+    audio.play().catch(e => {
+        console.log('VerifyMe: Sound blocked. Tab requires interaction (click) to play audio.');
+    });
+}
+
 // Listen for verification codes from background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.type === 'CODE_FOUND' && request.data.type === 'OTP') {
-        showFloatingBadge(request.data.value, request.data.sender);
+    if (request.type === 'CODE_FOUND') {
+        playNotificationSound();
+        if (request.data.type === 'OTP') {
+            showFloatingBadge(request.data.value, request.data.sender);
+        }
     }
 });
 

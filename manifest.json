@@ -6,7 +6,8 @@
     "permissions": [
         "storage",
         "activeTab",
-        "notifications"
+        "notifications",
+        "offscreen"
     ],
     "host_permissions": [
         "https://api.mail.tm/*"
