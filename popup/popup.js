@@ -13,6 +13,17 @@ function updateUI() {
         }
 
         if (lastFound) {
+            // Elite Polish: Show Sender Logo
+            const logoEl = document.getElementById('sender-logo');
+            if (lastFound.senderLogo) {
+                logoEl.src = lastFound.senderLogo;
+                logoEl.style.display = 'block';
+                document.getElementById('found-shield').style.display = 'none';
+            } else {
+                logoEl.style.display = 'none';
+                document.getElementById('found-shield').style.display = 'block';
+            }
+
             document.getElementById('loading').style.display = 'none';
             document.getElementById('found').style.display = 'block';
 
@@ -175,6 +186,19 @@ async function viewMessage(id, token) {
 document.getElementById('close-msg').onclick = () => {
     document.getElementById('message-detail').style.display = 'none';
 };
+
+// --- ELITE POLISH: SOUND ENGINE ---
+function playNotificationSound() {
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audio.volume = 0.5;
+    audio.play().catch(e => console.log('Sound blocked by browser policy until interaction'));
+}
+
+chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'TRIGGER_SOUND') {
+        playNotificationSound();
+    }
+});
 
 // Update every second while popup is open
 updateUI();

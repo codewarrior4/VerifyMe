@@ -92,13 +92,32 @@ async function checkForVerification() {
             const verificationInfo = parseEmailForAction(fullMsg.html, fullMsg.text);
 
             if (verificationInfo) {
+                // Elite Polish: Get Sender Logo from Domain
+                const domain = latestMsg.from.address.split('@')[1];
+                const senderLogo = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+
                 chrome.storage.local.set({
                     lastFound: {
                         ...verificationInfo,
                         id: latestMsg.id,
+                        sender: latestMsg.from.address,
+                        senderLogo,
                         subject: latestMsg.subject,
                         time: new Date().toISOString()
                     }
+                });
+
+                // Elite Polish: Trigger Sound in Popup
+                chrome.runtime.sendMessage({ type: 'TRIGGER_SOUND' });
+
+                // Elite Polish: Tell Content Script to show floating auto-fill
+                chrome.tabs.query({}, (tabs) => {
+                    tabs.forEach(tab => {
+                        chrome.tabs.sendMessage(tab.id, {
+                            type: 'CODE_FOUND',
+                            data: { ...verificationInfo, sender: latestMsg.from.address }
+                        }).catch(e => { /* Tab might not have content script */ });
+                    });
                 });
 
                 chrome.notifications.create({
