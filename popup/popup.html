@@ -184,6 +184,95 @@
             margin: 10px 0;
         }
 
+        /* Inbox Styles */
+        .inbox-toggle {
+            font-size: 10px;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            cursor: pointer;
+            margin-top: 15px;
+            display: inline-block;
+        }
+
+        .inbox-container {
+            display: none;
+            margin-top: 15px;
+            text-align: left;
+            max-height: 250px;
+            overflow-y: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 10px;
+        }
+
+        .inbox-item {
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .inbox-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+
+        .inbox-item .subject {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .inbox-item .from {
+            font-size: 10px;
+            color: var(--dim);
+        }
+
+        .message-view {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg);
+            z-index: 100;
+            padding: 20px;
+            overflow-y: auto;
+            animation: slide-up 0.3s ease-out;
+        }
+
+        .message-view-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .message-content {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text);
+            word-break: break-all;
+        }
+
+        .message-content iframe {
+            width: 100%;
+            border: none;
+            background: white;
+            border-radius: 8px;
+            min-height: 300px;
+        }
+
         .footer {
             margin-top: 20px;
             text-align: center;
@@ -191,6 +280,7 @@
             color: var(--dim);
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-weight: 700;
         }
     </style>
 </head>
@@ -218,10 +308,31 @@
 
         <button id="reset-btn" class="reset-btn" style="margin-bottom: 15px;">START NEW SESSION</button>
 
+        <div id="inbox-section">
+            <span id="toggle-inbox" class="inbox-toggle">📂 VIEW MINI INBOX</span>
+            <div id="inbox-list" class="inbox-container">
+                <!-- Messages will appear here -->
+            </div>
+        </div>
+
         <a href="https://codewarrior4.github.io/BurnerX/" id="full-inbox-link" target="_blank"
-            style="font-size: 10px; color: var(--dim); text-decoration: underline; display: block;">
+            style="font-size: 10px; color: var(--dim); text-decoration: underline; display: block; margin-top: 15px;">
             OPEN FULL INBOX
         </a>
+    </div>
+
+    <!-- Message Detail View -->
+    <div id="message-detail" class="message-view">
+        <div class="message-view-header">
+            <h2 id="msg-subject" style="font-size: 14px; margin: 0; flex: 1; padding-right: 10px;">Subject</h2>
+            <button id="close-msg" class="icon-btn">✕</button>
+        </div>
+        <div id="msg-info" style="font-size: 11px; color: var(--dim); margin-bottom: 15px;">
+            From: <span id="msg-from"></span>
+        </div>
+        <div id="msg-body" class="message-content">
+            <!-- Content here -->
+        </div>
     </div>
 
     <div id="found" class="status-card found-card">

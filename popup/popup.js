@@ -1,3 +1,5 @@
+const API_BASE = 'https://api.mail.tm';
+
 function updateUI() {
     chrome.storage.local.get(['identity', 'lastFound'], (data) => {
         const { identity, lastFound } = data;
@@ -79,6 +81,99 @@ document.getElementById('copy-addr').onclick = () => {
     const original = btn.textContent;
     btn.textContent = '✅';
     setTimeout(() => btn.textContent = original, 2000);
+};
+
+// --- MINI INBOX LOGIC ---
+document.getElementById('toggle-inbox').onclick = () => {
+    const list = document.getElementById('inbox-list');
+    const btn = document.getElementById('toggle-inbox');
+    if (list.style.display === 'block') {
+        list.style.display = 'none';
+        btn.textContent = '📂 VIEW MINI INBOX';
+    } else {
+        list.style.display = 'block';
+        btn.textContent = '✕ HIDE INBOX';
+        loadInbox();
+    }
+};
+
+async function loadInbox() {
+    const data = await chrome.storage.local.get(['identity']);
+    if (!data.identity) return;
+
+    const list = document.getElementById('inbox-list');
+    list.innerHTML = '<p style="font-size: 10px; color: var(--dim); text-align: center;">Loading messages...</p>';
+
+    try {
+        const res = await fetch(`${API_BASE}/messages`, {
+            headers: { Authorization: `Bearer ${data.identity.token}` }
+        });
+        const msgData = await res.json();
+        const messages = msgData['hydra:member'];
+
+        if (messages.length === 0) {
+            list.innerHTML = '<p style="font-size: 10px; color: var(--dim); text-align: center;">No messages yet.</p>';
+            return;
+        }
+
+        list.innerHTML = '';
+        messages.forEach(msg => {
+            const item = document.createElement('div');
+            item.className = 'inbox-item';
+            item.innerHTML = `
+                <div class="subject">${msg.subject || '(No Subject)'}</div>
+                <div class="from">${msg.from.address}</div>
+            `;
+            item.onclick = () => viewMessage(msg.id, data.identity.token);
+            list.appendChild(item);
+        });
+    } catch (err) {
+        list.innerHTML = '<p style="font-size: 10px; color: #ff5252; text-align: center;">Failed to load inbox.</p>';
+    }
+}
+
+async function viewMessage(id, token) {
+    const detail = document.getElementById('message-detail');
+    const body = document.getElementById('msg-body');
+    const subject = document.getElementById('msg-subject');
+    const from = document.getElementById('msg-from');
+
+    detail.style.display = 'block';
+    body.innerHTML = '<p style="text-align: center; margin-top: 50px;">Opening email...</p>';
+
+    try {
+        const res = await fetch(`${API_BASE}/messages/${id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const msg = await res.json();
+
+        subject.textContent = msg.subject || '(No Subject)';
+        from.textContent = msg.from.address;
+
+        if (msg.html && (Array.isArray(msg.html) ? msg.html.length > 0 : msg.html.length > 0)) {
+            // Use iframe for HTML content to prevent CSS leaking
+            const iframe = document.createElement('iframe');
+            body.innerHTML = '';
+            body.appendChild(iframe);
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(Array.isArray(msg.html) ? msg.html[0] : msg.html);
+            doc.close();
+
+            // Adjust iframe height
+            iframe.onload = () => {
+                iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 50) + 'px';
+            };
+        } else {
+            body.innerHTML = `<pre style="white-space: pre-wrap; font-family: sans-serif; font-size: 13px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">${msg.text || 'No content'}</pre>`;
+        }
+    } catch (err) {
+        body.innerHTML = '<p style="color: #ff5252;">Failed to load message content.</p>';
+    }
+}
+
+document.getElementById('close-msg').onclick = () => {
+    document.getElementById('message-detail').style.display = 'none';
 };
 
 // Update every second while popup is open

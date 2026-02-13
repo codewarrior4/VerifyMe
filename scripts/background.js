@@ -120,6 +120,11 @@ async function checkForVerification() {
 }
 
 function parseEmailForAction(html, text) {
+    // Don't strip HTML for URL extraction - extract from raw HTML first
+    const urlRegex = /https?:\/\/[^\s"'<>]+(?:[?#][^\s"'<>]*)?/gi;
+    const allUrls = (html || '').match(urlRegex) || [];
+    
+    // For keyword detection, use clean text
     const cleanContent = (text || '') + (html ? html.replace(/<[^>]*>?/gm, ' ') : '');
     const content = cleanContent.toLowerCase();
     if (!content.trim()) return null;
@@ -139,10 +144,6 @@ function parseEmailForAction(html, text) {
     const verifKeywords = ['confirm', 'verify', 'activate', 'validate', 'token', 'reset', 'password', 'recovery', 'auth', 'login', 'click'];
     const ignoreKeywords = ['unsubscribe', 'privacy', 'terms', 'opt-out', 'preferences', 'help', 'support', 'about'];
 
-    // Extract all potential URLs
-    const urlRegex = /https?:\/\/[^\s"'<>#]+(?:[?#][^\s"'<>]*)?/gi;
-    const allUrls = (html + " " + content).match(urlRegex) || [];
-
     const candidates = [];
     allUrls.forEach(url => {
         const urlLower = url.toLowerCase();
@@ -154,16 +155,18 @@ function parseEmailForAction(html, text) {
             if (urlLower.includes(k)) score += 10;
         });
 
-        // Search for keywords in the text *around* where this URL appeared in content
-        // This is a rough check
+        // If URL contains verification keywords OR content mentions them, it's a candidate
         if (score > 0 || verifKeywords.some(k => content.includes(k))) {
             candidates.push({ url, score });
         }
     });
 
     if (candidates.length > 0) {
-        // Sort by score then length (usually shorter is the actual action link)
-        const best = candidates.sort((a, b) => b.score - a.score || a.url.length - b.url.length)[0];
+        // Sort by score (higher first), then by length (shorter first)
+        const best = candidates.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return a.url.length - b.url.length;
+        })[0];
         return { type: 'LINK', value: best.url };
     }
 
